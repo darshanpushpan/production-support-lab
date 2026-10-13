@@ -1,0 +1,4 @@
+NAME                            IMAGE                         COMMAND                  SERVICE   CREATED              STATUS                        PORTS
+productionsupportlab-api-1      productionsupportlab-api      "uvicorn main:app --…"   api       About a minute ago   Up About a minute             127.0.0.1:8000->8000/tcp
+productionsupportlab-db-1       postgres:16-alpine            "docker-entrypoint.s…"   db        About a minute ago   Up About a minute (healthy)   127.0.0.1:5432->5432/tcp
+productionsupportlab-worker-1   productionsupportlab-worker   "python worker.py"       worker    About a minute ago   Up 24 seconds                 
