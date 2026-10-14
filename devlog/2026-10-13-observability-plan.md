@@ -1,5 +1,5 @@
 # Title: Planning how to measure the SLOs before adding Prometheus and Grafana
-Date: 2026-10-14
+Date: 2026-10-13
 
 ## What I did
 Wrote docs/observability-plan.md before building anything. For each of my 4 SLOs it lists the metric that measures it, where the metric comes from (api or worker), and the PromQL query that turns it into a percentage. Also sketched the dashboard layout.
