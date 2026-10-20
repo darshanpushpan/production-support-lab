@@ -27,3 +27,12 @@ le="30" first, then checked the real label values with /api/v1/series and switch
 - devlog/evidence/2026-10-19-le-label.txt
 - devlog/evidence/2026-10-19-worker-down.txt
 - observability/grafana/dashboards/slo-overview.json
+
+## Update Oct 20, 00:44
+I left the worker stopped after the test and took a Grafana screenshot about 4.5 hours later. Postgres had 3014 pending orders, the oldest 278 minutes old. The dashboard was green everywhere except the worker DOWN panel:
+- SLO 3 still said 100%, because it only counts orders that finished. Orders stuck in the queue never get counted at all.
+- SLO 4 and orders pending showed "no data" on a green background. No data shouldn't look healthy.
+
+Things to fix: a no data state that isn't green, and an SLO 4 that doesn't depend on the worker being alive (query Postgres directly or alert on the worker being down).
+
+Evidence: devlog/evidence/2026-10-20-worker-down-overnight.txt, devlog/screenshots/grafana-worker-down.png

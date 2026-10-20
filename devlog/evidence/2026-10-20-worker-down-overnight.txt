@@ -1,0 +1,13 @@
+Worker stopped at 20:06 on Oct 19 for the dead worker test and left stopped.
+Checked again at 00:44 on Oct 20 (about 4.5 hours later).
+
+> SELECT count(*), oldest pending in minutes FROM orders WHERE status='pending';
+3014 | 278
+
+Grafana at the same time (devlog/screenshots/grafana-worker-down.png):
+- SLO 1 availability: 100.00% (green)
+- SLO 2 under 500 ms: 100.00% (green)
+- SLO 3 processed within 30 s: 100.00% (green)   <- only counts orders that finished, stuck ones never show up
+- SLO 4 oldest pending order: no data (green background)
+- worker: DOWN (red)                              <- the only red panel
+- orders pending: no data (green background)
