@@ -1,12 +1,43 @@
 import os
+import time
 
 import psycopg
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, Response
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 from pydantic import BaseModel, Field
 
 DATABASE_URL = os.environ["DATABASE_URL"]
 
 app = FastAPI(title="Orders API")
+
+# SLO 1 (availability) and SLO 2 (latency) come from these two metrics.
+# Buckets include 0.5 so "under 500 ms" can be measured exactly.
+REQUESTS = Counter(
+    "http_requests_total", "HTTP requests handled", ["handler", "method", "status"]
+)
+LATENCY = Histogram(
+    "http_request_duration_seconds",
+    "Time spent handling a request",
+    ["handler", "method"],
+    buckets=(0.05, 0.1, 0.25, 0.5, 1, 2.5, 5),
+)
+
+
+@app.middleware("http")
+async def record_metrics(request: Request, call_next):
+    start = time.perf_counter()
+    status = 500  # if the handler crashes, count it as a 500
+    try:
+        response = await call_next(request)
+        status = response.status_code
+        return response
+    finally:
+        # use the route template (/orders/{order_id}) not the real path,
+        # otherwise every order id becomes its own time series
+        route = request.scope.get("route")
+        handler = route.path if route else "unmatched"
+        LATENCY.labels(handler, request.method).observe(time.perf_counter() - start)
+        REQUESTS.labels(handler, request.method, str(status)).inc()
 
 
 class OrderIn(BaseModel):
@@ -17,6 +48,11 @@ class OrderIn(BaseModel):
 
 def get_conn():
     return psycopg.connect(DATABASE_URL)
+
+
+@app.get("/metrics")
+def metrics():
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
 @app.get("/health")
