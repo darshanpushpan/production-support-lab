@@ -1,0 +1,8 @@
+> curl 127.0.0.1:9090/api/v1/series  match[]=order_processing_seconds_bucket   (le values)
+['1.0', '5.0', '10.0', '30.0', '60.0', '120.0', '300.0', '600.0', '+Inf']
+
+> sum(rate(order_processing_seconds_bucket{le="30"}[7d])) / sum(rate(order_processing_seconds_count[7d]))
+[]        <- no data, no error
+
+> sum(rate(order_processing_seconds_bucket{le="30.0"}[7d])) / sum(rate(order_processing_seconds_count[7d]))
+[{'metric': {}, 'value': [..., '1']}]

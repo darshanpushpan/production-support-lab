@@ -1,0 +1,13 @@
+> docker compose stop worker          (20:06:26)
+ Container productionsupportlab-worker-1  Stopped
+
+(Prometheus scrapes every 15s; worker marked down at 20:06:46)
+
+> up{job="worker"}
+['0']
+
+> orders_pending
+[]          <- no data: the worker is the one that reports this
+
+> SELECT count(*), oldest pending age FROM orders WHERE status='pending';   (straight from Postgres)
+14 | 23 seconds
