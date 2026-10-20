@@ -37,7 +37,7 @@ Histogram buckets need to include 0.5 for the API and 30 for the worker, otherwi
 2. Latency: POST /orders requests under 0.5s, divided by all POST /orders requests
    `sum(rate(http_request_duration_seconds_bucket{handler="/orders", method="POST", le="0.5"}[7d])) / sum(rate(http_request_duration_seconds_count{handler="/orders", method="POST"}[7d]))`
 3. Processing time: orders done within 30s, divided by all processed orders
-   `sum(rate(order_processing_seconds_bucket{le="30"}[7d])) / sum(rate(order_processing_seconds_count[7d]))`
+   `sum(rate(order_processing_seconds_bucket{le="30.0"}[7d])) / sum(rate(order_processing_seconds_count[7d]))`
 4. Lost orders: oldest pending order in seconds, should stay under 600
    `orders_oldest_pending_seconds`
 
