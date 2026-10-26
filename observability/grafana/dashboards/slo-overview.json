@@ -6,7 +6,7 @@
   ],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "refresh": "10s",
   "time": {
     "from": "now-30m",
@@ -58,8 +58,21 @@
           "color": {
             "mode": "thresholds"
           },
-          "noValue": "no data",
-          "decimals": 2
+          "noValue": "NO DATA",
+          "decimals": 2,
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null+nan",
+                "result": {
+                  "text": "NO DATA",
+                  "color": "orange",
+                  "index": 99
+                }
+              }
+            }
+          ]
         },
         "overrides": []
       },
@@ -120,8 +133,21 @@
           "color": {
             "mode": "thresholds"
           },
-          "noValue": "no data",
-          "decimals": 2
+          "noValue": "NO DATA",
+          "decimals": 2,
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null+nan",
+                "result": {
+                  "text": "NO DATA",
+                  "color": "orange",
+                  "index": 99
+                }
+              }
+            }
+          ]
         },
         "overrides": []
       },
@@ -141,7 +167,7 @@
       "id": 3,
       "type": "stat",
       "title": "SLO 3: processed within 30 s (target 99%)",
-      "description": "Share of orders the worker finished within 30s of being created, rolling 7 days.",
+      "description": "Share of orders the worker finished within 30s of being created, rolling 7 days. Only counts finished orders, so stuck orders are caught by the OrdersBacklog alert and the oldest pending panel instead.",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -182,8 +208,21 @@
           "color": {
             "mode": "thresholds"
           },
-          "noValue": "no data",
-          "decimals": 2
+          "noValue": "NO DATA",
+          "decimals": 2,
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null+nan",
+                "result": {
+                  "text": "NO DATA",
+                  "color": "orange",
+                  "index": 99
+                }
+              }
+            }
+          ]
         },
         "overrides": []
       },
@@ -203,7 +242,7 @@
       "id": 4,
       "type": "stat",
       "title": "SLO 4: oldest pending order (limit 10 min)",
-      "description": "Age of the oldest order still pending. Over 600s counts as lost. No data if the worker is down, because the worker reports it.",
+      "description": "Age of the oldest order still pending, read from Postgres by the API. Over 600s counts as lost.",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -248,8 +287,21 @@
           "color": {
             "mode": "thresholds"
           },
-          "noValue": "no data",
-          "decimals": 0
+          "noValue": "NO DATA",
+          "decimals": 0,
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null+nan",
+                "result": {
+                  "text": "NO DATA",
+                  "color": "orange",
+                  "index": 99
+                }
+              }
+            }
+          ]
         },
         "overrides": []
       },
@@ -310,7 +362,7 @@
           "color": {
             "mode": "thresholds"
           },
-          "noValue": "no data",
+          "noValue": "NO DATA",
           "decimals": 0,
           "mappings": [
             {
@@ -321,6 +373,17 @@
                 },
                 "1": {
                   "text": "UP"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "null+nan",
+                "result": {
+                  "text": "NO DATA",
+                  "color": "orange",
+                  "index": 99
                 }
               }
             }
@@ -385,7 +448,7 @@
           "color": {
             "mode": "thresholds"
           },
-          "noValue": "no data",
+          "noValue": "NO DATA",
           "decimals": 0,
           "mappings": [
             {
@@ -396,6 +459,17 @@
                 },
                 "1": {
                   "text": "UP"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "null+nan",
+                "result": {
+                  "text": "NO DATA",
+                  "color": "orange",
+                  "index": 99
                 }
               }
             }
@@ -419,7 +493,7 @@
       "id": 7,
       "type": "stat",
       "title": "orders pending",
-      "description": "Orders waiting for the worker right now.",
+      "description": "Orders waiting for the worker right now, read from Postgres by the API so it still works when the worker is down.",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -460,8 +534,21 @@
           "color": {
             "mode": "thresholds"
           },
-          "noValue": "no data",
-          "decimals": 0
+          "noValue": "NO DATA",
+          "decimals": 0,
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null+nan",
+                "result": {
+                  "text": "NO DATA",
+                  "color": "orange",
+                  "index": 99
+                }
+              }
+            }
+          ]
         },
         "overrides": []
       },
@@ -518,8 +605,21 @@
           "color": {
             "mode": "thresholds"
           },
-          "noValue": "no data",
-          "decimals": 0
+          "noValue": "NO DATA",
+          "decimals": 0,
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null+nan",
+                "result": {
+                  "text": "NO DATA",
+                  "color": "orange",
+                  "index": 99
+                }
+              }
+            }
+          ]
         },
         "overrides": []
       },
