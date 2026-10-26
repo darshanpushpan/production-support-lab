@@ -11,3 +11,12 @@ receivers:
       # for now this just logs alerts; later it becomes the ServiceNow bridge
       - url: http://alert-receiver:5001/alerts
         send_resolved: true
+
+# One problem, one page. The first time alerting ran, OrdersLost (critical) and
+# OrdersBacklog (warning) both fired for the same stuck orders. If something
+# critical about the queue is already firing, the backlog warning adds nothing.
+inhibit_rules:
+  - source_matchers:
+      - alertname=~"OrdersLost|WorkerDown"
+    target_matchers:
+      - alertname="OrdersBacklog"
