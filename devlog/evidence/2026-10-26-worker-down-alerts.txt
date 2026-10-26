@@ -1,0 +1,20 @@
+# stopped-worker test with alerting and the inhibit rule (times UTC)
+stop worker 19:38:34
+ Container productionsupportlab-worker-1  Stopped
+WorkerDown seen 19:40:10
+OrdersBacklog firing in Prometheus 19:41:43
+--- alertmanager view:
+WorkerDown active []
+OrdersBacklog suppressed ['812ad5a8f21be06e']
+orders_pending from api: ['125']
+start worker 19:42:13
+ Container productionsupportlab-worker-1  Started
+--- receiver log:
+alert receiver listening on :5001
+19:35:54 FIRING   OrdersLost       critical An order has been pending for 6d 14h 59m 39s (SLO 4 limit is 10 min)
+19:36:54 FIRING   OrdersBacklog    warning  Oldest pending order is 6d 14h 50m 40s old (SLO 3 target is 30s)
+19:37:54 RESOLVED OrdersLost       critical An order has been pending for 6d 14h 44m 7s (SLO 4 limit is 10 min)
+19:39:24 RESOLVED OrdersBacklog    warning  Oldest pending order is 1m 37s old (SLO 3 target is 30s)
+19:40:09 FIRING   WorkerDown       critical Worker is down, orders are not being processed
+19:43:09 RESOLVED WorkerDown       critical Worker is down, orders are not being processed
+

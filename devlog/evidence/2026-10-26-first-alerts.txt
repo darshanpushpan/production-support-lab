@@ -1,0 +1,8 @@
+# alert receiver log, first time alerting was switched on (times UTC, 15:35 EDT)
+# leftover orders from Oct 20: docker was shut down before the worker finished the 3014 order backlog
+alert receiver listening on :5001
+19:35:54 FIRING   OrdersLost       critical An order has been pending for 6d 14h 59m 39s (SLO 4 limit is 10 min)
+19:36:54 FIRING   OrdersBacklog    warning  Oldest pending order is 6d 14h 50m 40s old (SLO 3 target is 30s)
+19:37:54 RESOLVED OrdersLost       critical An order has been pending for 6d 14h 44m 7s (SLO 4 limit is 10 min)
+# pending orders left after the backlog cleared: 1
+
