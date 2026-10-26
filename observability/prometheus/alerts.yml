@@ -1,0 +1,61 @@
+groups:
+  - name: orders
+    rules:
+      # A dead worker can't report on itself, so watch it from the outside.
+      - alert: WorkerDown
+        expr: up{job="worker"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Worker is down, orders are not being processed"
+          runbook: docs/runbooks/worker-down.md
+
+      - alert: ApiDown
+        expr: up{job="api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Orders API is not reachable"
+
+      # SLO 3 only counts orders that finish. A stuck order is never counted,
+      # so this watches the queue instead.
+      - alert: OrdersBacklog
+        expr: orders_oldest_pending_seconds > 30
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Oldest pending order is {{ $value | humanizeDuration }} old (SLO 3 target is 30s)"
+
+      # SLO 4: pending for more than 10 minutes counts as lost
+      - alert: OrdersLost
+        expr: orders_oldest_pending_seconds > 600
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "An order has been pending for {{ $value | humanizeDuration }} (SLO 4 limit is 10 min)"
+
+      # SLO 1: more than 0.5% of order requests failing over 5 minutes
+      - alert: OrdersErrorRate
+        expr: |
+          sum(rate(http_requests_total{handler="/orders", status=~"5.."}[5m]))
+            / sum(rate(http_requests_total{handler="/orders"}[5m])) > 0.005
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $value | humanizePercentage }} of order requests are failing"
+
+      # SLO 2: fewer than 95% of orders finishing under 500 ms over 5 minutes
+      - alert: OrdersSlow
+        expr: |
+          sum(rate(http_request_duration_seconds_bucket{handler="/orders", method="POST", le="0.5"}[5m]))
+            / sum(rate(http_request_duration_seconds_count{handler="/orders", method="POST"}[5m])) < 0.95
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Only {{ $value | humanizePercentage }} of orders finished under 500 ms"
