@@ -3,7 +3,8 @@ import time
 
 import psycopg
 from fastapi import FastAPI, HTTPException, Request, Response
-from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
+from prometheus_client import CONTENT_TYPE_LATEST, REGISTRY, Counter, Histogram, generate_latest
+from prometheus_client.core import GaugeMetricFamily
 from pydantic import BaseModel, Field
 
 DATABASE_URL = os.environ["DATABASE_URL"]
@@ -21,6 +22,36 @@ LATENCY = Histogram(
     ["handler", "method"],
     buckets=(0.05, 0.1, 0.25, 0.5, 1, 2.5, 5),
 )
+
+
+class QueueCollector:
+    """Reads the order queue straight from Postgres every time Prometheus scrapes the API.
+
+    This used to live in the worker, but a dead worker can't report its own queue:
+    the numbers just disappeared while 3014 orders piled up. The API doesn't depend
+    on the worker, so it keeps reporting when the worker is down.
+    """
+
+    def collect(self):
+        try:
+            with psycopg.connect(DATABASE_URL, connect_timeout=3) as conn:
+                count, oldest = conn.execute(
+                    "SELECT count(*), COALESCE(EXTRACT(EPOCH FROM now() - min(created_at)), 0) "
+                    "FROM orders WHERE status = 'pending'"
+                ).fetchone()
+        except psycopg.OperationalError:
+            return  # database down: report nothing, the health check covers that
+        pending = GaugeMetricFamily("orders_pending", "Orders waiting to be processed")
+        pending.add_metric([], count)
+        yield pending
+        age = GaugeMetricFamily(
+            "orders_oldest_pending_seconds", "Age of the oldest pending order (0 if none)"
+        )
+        age.add_metric([], float(oldest))
+        yield age
+
+
+REGISTRY.register(QueueCollector())
 
 
 @app.middleware("http")
