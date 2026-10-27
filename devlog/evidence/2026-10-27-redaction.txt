@@ -1,0 +1,27 @@
+# 2026-10-27 redaction check, about 2 minutes after the stack came up with Loki + Alloy
+
+## what loadgen sent (stored in Postgres as-is)
+$ psql -c "select id, email, notes from orders where notes like 'pay with%' order by id desc limit 2"
+ 6076 | test-customer-18@example.com | pay with 4111 1111 1111 1111
+ 6065 | test-customer-11@example.com | pay with 4111 1111 1111 1111
+
+## what the api logged for the same orders (queried from Loki)
+$ Loki query: {service="api"} |= "CARD"
+{"time": "2026-10-27T23:12:01.423+00:00", "level": "info", "service": "api", "msg": "order created", "order_id": 6076, "customer": "test-customer-18", "email": "[EMAIL]", "item": "keyboard", "quantity": 2, "notes": "pay with [CARD ****1111]"}
+{"time": "2026-10-27T23:11:37.455+00:00", "level": "info", "service": "api", "msg": "order created", "order_id": 6065, "customer": "test-customer-11", "email": "[EMAIL]", "item": "dock", "quantity": 2, "notes": "pay with [CARD ****1111]"}
+
+## raw card number anywhere in Loki, last 30 min
+$ sum(count_over_time({service=~"api|worker"} |= "4111 1111" [30m]))
+no results (0 lines)
+
+## raw email anywhere in Loki, last 30 min
+$ sum(count_over_time({service=~"api|worker"} |= "@example.com" [30m]))
+no results (0 lines)
+
+## total lines in Loki, last 30 min
+api 67
+worker 49
+
+## pytest
+.......                                                                  [100%]
+7 passed in 0.73s
