@@ -4,10 +4,14 @@ import time
 import psycopg
 from prometheus_client import Counter, Histogram, start_http_server
 
+from logsetup import setup_logging
+
 DATABASE_URL = os.environ["DATABASE_URL"]
 POLL_SECONDS = float(os.environ.get("POLL_SECONDS", "2"))
 BATCH_SIZE = int(os.environ.get("BATCH_SIZE", "10"))
 METRICS_PORT = int(os.environ.get("METRICS_PORT", "9100"))
+
+log = setup_logging("worker")
 
 # SLO 3: time from order created to processed. Buckets include 30.
 PROCESSING = Histogram(
@@ -40,25 +44,24 @@ def process_batch(conn):
             ).fetchone()
             PROCESSING.observe(float(row[0]))
             PROCESSED.inc()
+    if ids:
+        log.info("processed batch", extra={"fields": {"count": len(ids), "order_ids": ids}})
     return len(ids)
 
 
 def main():
     # the worker has no web server of its own, so this gives Prometheus a /metrics to scrape
     start_http_server(METRICS_PORT)
-    print(f"worker starting, metrics on :{METRICS_PORT}", flush=True)
+    log.info("worker starting", extra={"fields": {"metrics_port": METRICS_PORT}})
     while True:
         try:
             with psycopg.connect(DATABASE_URL, autocommit=True) as conn:
                 while True:
-                    done = process_batch(conn)
-                    if done:
-                        print(f"processed {done} orders", flush=True)
-                    else:
+                    if not process_batch(conn):
                         time.sleep(POLL_SECONDS)
         except psycopg.OperationalError as e:
             # database went away; wait and reconnect instead of crashing
-            print(f"database error, retrying in 5s: {e}", flush=True)
+            log.error("database error, retrying in 5s", extra={"fields": {"error": str(e)}})
             time.sleep(5)
 
 

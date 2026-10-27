@@ -1,0 +1,8 @@
+# build context is the repo root now (for common/), keep secrets and junk out of it
+.env
+.git
+devlog
+docs
+observability
+tests
+**/__pycache__

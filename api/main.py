@@ -7,7 +7,11 @@ from prometheus_client import CONTENT_TYPE_LATEST, REGISTRY, Counter, Histogram,
 from prometheus_client.core import GaugeMetricFamily
 from pydantic import BaseModel, Field
 
+from logsetup import setup_logging
+
 DATABASE_URL = os.environ["DATABASE_URL"]
+
+log = setup_logging("api")
 
 app = FastAPI(title="Orders API")
 
@@ -40,6 +44,7 @@ class QueueCollector:
                     "FROM orders WHERE status = 'pending'"
                 ).fetchone()
         except psycopg.OperationalError:
+            log.warning("queue metrics skipped, database unreachable")
             return  # database down: report nothing, the health check covers that
         pending = GaugeMetricFamily("orders_pending", "Orders waiting to be processed")
         pending.add_metric([], count)
@@ -75,6 +80,8 @@ class OrderIn(BaseModel):
     customer: str = Field(min_length=1, max_length=100)
     item: str = Field(min_length=1, max_length=100)
     quantity: int = Field(gt=0, le=1000)
+    email: str = Field(min_length=3, max_length=200)
+    notes: str = Field(default="", max_length=500)
 
 
 def get_conn():
@@ -93,6 +100,7 @@ def health():
         with get_conn() as conn:
             conn.execute("SELECT 1")
     except psycopg.OperationalError:
+        log.error("health check failed, database unreachable")
         raise HTTPException(status_code=503, detail="database unavailable")
     return {"status": "ok"}
 
@@ -101,10 +109,16 @@ def health():
 def create_order(order: OrderIn):
     with get_conn() as conn:
         row = conn.execute(
-            "INSERT INTO orders (customer, item, quantity) VALUES (%s, %s, %s) "
-            "RETURNING id, status, created_at",
-            (order.customer, order.item, order.quantity),
+            "INSERT INTO orders (customer, email, item, quantity, notes) "
+            "VALUES (%s, %s, %s, %s, %s) RETURNING id, status, created_at",
+            (order.customer, order.email, order.item, order.quantity, order.notes),
         ).fetchone()
+    # email and notes go in on purpose: this is the kind of line that leaks
+    # personal data in real systems. The formatter masks it before it's written.
+    log.info("order created", extra={"fields": {
+        "order_id": row[0], "customer": order.customer, "email": order.email,
+        "item": order.item, "quantity": order.quantity, "notes": order.notes,
+    }})
     return {"id": row[0], "status": row[1], "created_at": row[2]}
 
 

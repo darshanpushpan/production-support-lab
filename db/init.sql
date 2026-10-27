@@ -2,8 +2,10 @@
 CREATE TABLE IF NOT EXISTS orders (
     id           SERIAL PRIMARY KEY,
     customer     TEXT        NOT NULL,
+    email        TEXT,
     item         TEXT        NOT NULL,
     quantity     INTEGER     NOT NULL CHECK (quantity > 0),
+    notes        TEXT        NOT NULL DEFAULT '',
     status       TEXT        NOT NULL DEFAULT 'pending',  -- pending, processed, failed
     created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
     processed_at TIMESTAMPTZ
