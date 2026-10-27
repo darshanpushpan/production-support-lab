@@ -17,9 +17,14 @@ services:
       retries: 10
 
   api:
-    build: ./api
+    # context is the repo root so the image can include common/logsetup.py
+    build:
+      context: .
+      dockerfile: api/Dockerfile
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/orders
+    volumes:
+      - app_logs:/var/log/app
     ports:
       - "127.0.0.1:8000:8000"
     # "started" isn't "ready": without this, loadgen sent its first order before uvicorn was listening
@@ -33,9 +38,13 @@ services:
         condition: service_healthy
 
   worker:
-    build: ./worker
+    build:
+      context: .
+      dockerfile: worker/Dockerfile
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/orders
+    volumes:
+      - app_logs:/var/log/app
     depends_on:
       db:
         condition: service_healthy
@@ -68,6 +77,27 @@ services:
   alert-receiver:
     build: ./bridge
 
+  loki:
+    image: grafana/loki:3.5.0
+    command: ["-config.file=/etc/loki/loki.yml"]
+    volumes:
+      - ./observability/loki/loki.yml:/etc/loki/loki.yml:ro
+      - loki_data:/loki
+    ports:
+      - "127.0.0.1:3100:3100"
+
+  alloy:
+    image: grafana/alloy:v1.10.0
+    command: ["run", "--server.http.listen-addr=0.0.0.0:12345", "--storage.path=/var/lib/alloy/data", "/etc/alloy/config.alloy"]
+    volumes:
+      - ./observability/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - app_logs:/var/log/app:ro  # read only, and only the app logs
+      - alloy_data:/var/lib/alloy/data  # remembers how far it has read each file
+    ports:
+      - "127.0.0.1:12345:12345"
+    depends_on:
+      - loki
+
   grafana:
     image: grafana/grafana-oss:12.1.0
     environment:
@@ -84,8 +114,12 @@ services:
       - "127.0.0.1:3000:3000"
     depends_on:
       - prometheus
+      - loki
 
 volumes:
   db_data:
   prometheus_data:
   grafana_data:
+  loki_data:
+  app_logs:
+  alloy_data:

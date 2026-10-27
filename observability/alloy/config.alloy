@@ -1,0 +1,36 @@
+// Alloy tails the JSON log files the api and worker write to the shared volume
+// and pushes them to Loki. It only gets that folder, read only. No Docker socket.
+
+local.file_match "app_logs" {
+  path_targets = [{"__path__" = "/var/log/app/*.log"}]
+}
+
+loki.source.file "app_logs" {
+  targets    = local.file_match.app_logs.targets
+  forward_to = [loki.process.app_logs.receiver]
+}
+
+loki.process "app_logs" {
+  // pull level and service out of each JSON line so Loki can index them as labels.
+  // Only low-cardinality fields become labels; order ids, emails etc. stay in the line.
+  stage.json {
+    expressions = {level = "level", service = "service"}
+  }
+
+  stage.labels {
+    values = {level = "", service = ""}
+  }
+
+  // the file path isn't useful once we have the service label
+  stage.label_drop {
+    values = ["filename"]
+  }
+
+  forward_to = [loki.write.local.receiver]
+}
+
+loki.write "local" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}
